@@ -24,6 +24,8 @@ maude
 
 On first run, MAUDE will prompt you for API keys. Mistral offers a free tier.
 
+> **Note:** On some systems (e.g. Ubuntu/Debian), `pip` may point to Python 2. If `pip install maude` fails, use `pip3 install maude` instead.
+
 ## Models
 
 | Name | Provider | Notes |
