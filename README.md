@@ -40,6 +40,26 @@ On first run, MAUDE will prompt you for API keys. Mistral offers a free tier.
 
 Switch models in chat: `/model claude`
 
+## Gateway Server
+
+Run MAUDE as an HTTP server for mobile apps, remote clients, or Telegram:
+
+```bash
+maude --serve                         # Start on port 8080
+maude --serve --port 30000            # Custom port
+maude --serve --ssl-cert cert.pem --ssl-key key.pem  # With SSL
+maude --serve --pwa-dir ./dist        # Serve mobile PWA
+```
+
+The gateway exposes:
+- `/v1/chat/completions` — OpenAI-compatible API with server-side tool execution
+- `/v1/models` — Available models
+- `/ws/terminal` — WebSocket SSH terminal
+- `/api/collab/*` — Cross-machine collaboration mesh
+- `/api/tools` — Tool catalog and direct execution
+- `/upload/*`, `/download/*`, `/share/*` — File transfer
+- `/app/*` — Mobile PWA static files
+
 ## License
 
 MIT
