@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "maude"
-version = "2.0.0"
+version = "2.0.1"
 description = "MAUDE — AI assistant with 80+ tools. Cloud models, cross-platform, no GPU required."
 readme = "README.md"
 license = "MIT"
@@ -31,7 +31,6 @@ dependencies = [
     "openai>=1.50.0",
     "httpx>=0.27.0",
     "rich>=13.0",
-    "prompt-toolkit>=3.0",
     "requests>=2.31",
     "beautifulsoup4>=4.12",
     "ddgs>=6.0",

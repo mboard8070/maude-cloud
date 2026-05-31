@@ -1,10 +1,11 @@
 """
 MAUDE TUI — Terminal chat with tool visibility and native copy/paste.
 
-Uses Rich for formatted output, prompt_toolkit for input, and the
+Uses Rich for formatted output and native terminal input, with the
 engine module for direct LLM + tool execution (no gateway needed).
 """
 
+import os
 import sys
 import uuid
 import time
@@ -14,11 +15,6 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.formatted_text import HTML
 
 from .engine import Engine, EngineEvent, TurnResult
 from .providers import PROVIDERS, get_available_providers
@@ -41,6 +37,14 @@ def _get_available_models() -> dict:
 
 console = Console()
 _last_response = ""
+
+COLOR_ENABLED = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+RESET = "\033[0m" if COLOR_ENABLED else ""
+USER_COLOR = "\033[92m" if COLOR_ENABLED else ""
+
+
+def color_prompt(text: str) -> str:
+    return f"{USER_COLOR}{text}" if COLOR_ENABLED else text
 
 # ── Event handler for TUI display ────────────────────────────────────────
 
@@ -181,17 +185,16 @@ def _system_prompt() -> dict:
     }
 
 
-# ── Key Bindings ──────────────────────────────────────────────────────────
+# ── Input ─────────────────────────────────────────────────────────────────
 
 
-def make_keybindings():
-    kb = KeyBindings()
-
-    @kb.add("escape", "enter")
-    def _(event):
-        event.current_buffer.insert_text("\n")
-
-    return kb
+def read_user_input(model_tag: str) -> str:
+    """Read input with the native terminal."""
+    if COLOR_ENABLED:
+        value = input(color_prompt(f"{model_tag} > "))
+        print(RESET, end="")
+        return value.strip()
+    return input(f"{model_tag} > ").strip()
 
 
 # ── Main ──────────────────────────────────────────────────────────────────
@@ -214,14 +217,6 @@ def main():
     # Pick default model
     default_model = "mistral" if "mistral" in available else next(iter(available))
 
-    session = PromptSession(
-        history=FileHistory(str(HISTORY_FILE)),
-        auto_suggest=AutoSuggestFromHistory(),
-        key_bindings=make_keybindings(),
-        multiline=False,
-        enable_history_search=True,
-    )
-
     messages = [_system_prompt()]
     current_model = [default_model]
     engine = Engine(model=default_model)
@@ -238,9 +233,7 @@ def main():
     while True:
         try:
             model_tag = current_model[0]
-            user_input = session.prompt(
-                HTML(f"<ansigreen><b>{model_tag}</b></ansigreen> <ansigray>></ansigray> "),
-            ).strip()
+            user_input = read_user_input(model_tag)
 
             if not user_input:
                 continue
@@ -287,7 +280,7 @@ def main():
                 console.print()
                 console.print("[bold magenta]MAUDE[/bold magenta]")
                 # Print content directly for native terminal scrollback
-                print(turn_result.content)
+                console.print(Text(turn_result.content, style="bright_white"))
                 console.print(f"[dim]{turn_result.prompt_tokens}+{turn_result.completion_tokens} tokens | {turn_result.elapsed:.1f}s[/dim]")
                 if turn_result.cache_read_tokens:
                     console.print(f"[dim]cache: {turn_result.cache_read_tokens} read, {turn_result.cache_create_tokens} create[/dim]")
