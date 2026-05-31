@@ -87,6 +87,10 @@ _TOOL_GROUPS = {
                       "facebook", "instagram", "x.com"],
         "tools": {"social_post"},
     },
+    "xai_oauth": {
+        "keywords": ["xai", "x.ai", "grok", "oauth", "supergrok", "x premium", "x search"],
+        "tools": {"xai_oauth_start", "xai_oauth_finish", "xai_oauth_doctor", "xai_oauth_status", "xai_oauth_test", "xai_x_search"},
+    },
     "web_image": {
         "keywords": ["find image", "find picture", "find photo", "show me a picture",
                       "show me a photo", "show me an image", "photo of", "image of",

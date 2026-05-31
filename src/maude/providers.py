@@ -5,13 +5,16 @@ Supports: Anthropic (Claude), OpenAI, Google (Gemini), xAI (Grok), Mistral
 """
 
 import os
+import json
 from enum import Enum
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, Optional
 
 
 class Provider(Enum):
     """Supported provider types."""
+    LOCAL = "local"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
     GOOGLE = "google"
@@ -32,6 +35,7 @@ class ProviderConfig:
     cost_per_1k_input: float
     cost_per_1k_output: float
     max_context: int = 128000
+    auth_mode: str = "api_key"
 
 
 PROVIDERS: Dict[str, ProviderConfig] = {
@@ -115,11 +119,23 @@ PROVIDERS: Dict[str, ProviderConfig] = {
         provider=Provider.XAI,
         api_key_env="XAI_API_KEY",
         base_url="https://api.x.ai/v1",
-        default_model="grok-2-latest",
+        default_model="grok-4.3",
         supports_vision=True,
         supports_tools=True,
         cost_per_1k_input=0.002,
         cost_per_1k_output=0.01,
+    ),
+    "grok-oauth": ProviderConfig(
+        name="xAI Grok OAuth",
+        provider=Provider.XAI,
+        api_key_env="",
+        base_url="https://api.x.ai/v1",
+        default_model="grok-4.3",
+        supports_vision=True,
+        supports_tools=True,
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        auth_mode="xai_oauth",
     ),
 
     # ── MISTRAL ───────────────────────────────────────────────────
@@ -190,16 +206,25 @@ def get_available_providers() -> Dict[str, ProviderConfig]:
     """Return providers that have API keys configured."""
     available = {}
     for name, config in PROVIDERS.items():
-        if os.environ.get(config.api_key_env):
+        if get_api_key(name):
             available[name] = config
     return available
 
 
 def get_api_key(provider_name: str) -> Optional[str]:
-    """Get API key for a provider, returns None if not set."""
+    """Get API key or OAuth access token for a provider, returns None if not set."""
     if provider_name not in PROVIDERS:
         return None
-    return os.environ.get(PROVIDERS[provider_name].api_key_env)
+    config = PROVIDERS[provider_name]
+    if config.auth_mode == "xai_oauth":
+        path = Path.home() / ".config" / "maude" / "xai_oauth.json"
+        try:
+            state = json.loads(path.read_text())
+            token = str((state.get("tokens") or {}).get("access_token") or "").strip()
+            return token or None
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return None
+    return os.environ.get(config.api_key_env)
 
 
 def list_providers() -> str:

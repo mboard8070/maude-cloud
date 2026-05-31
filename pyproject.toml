@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "maude"
-version = "2.0.2"
+version = "2.0.3"
 description = "MAUDE — AI assistant with 80+ tools. Cloud models, cross-platform, no GPU required."
 readme = "README.md"
 license = "MIT"

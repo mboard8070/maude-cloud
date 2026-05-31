@@ -19,7 +19,7 @@ def tool_ask_frontier(question: str, context: str = None, provider: str = None) 
         provider_name = provider if provider in available else None
         if not provider_name:
             # Prefer Claude, then OpenAI, then first available
-            for pref in ("claude", "openai", "mistral"):
+            for pref in ("claude", "openai", "gemini", "grok-oauth", "grok", "mistral"):
                 if pref in available:
                     provider_name = pref
                     break

@@ -166,6 +166,94 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "xai_oauth_start",
+            "description": "Start xAI Grok OAuth login for SuperGrok or X Premium+ using the same PKCE loopback flow as Hermes/OpenClaw. Returns the authorization URL.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "xai_oauth_finish",
+            "description": "Finish a pending xAI Grok OAuth login after the callback page was reached and save tokens for MAUDE. If loopback capture failed, pass the final redirected callback_url.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "callback_url": {
+                        "type": "string",
+                        "description": "Optional full final redirect URL from the xAI OAuth callback page.",
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Optional authorization code. Prefer callback_url because it includes OAuth state.",
+                    },
+                    "state": {
+                        "type": "string",
+                        "description": "Optional OAuth state when passing code manually.",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "xai_oauth_doctor",
+            "description": "Run non-secret diagnostics for MAUDE's xAI Grok OAuth setup: pending login, callback capture, discovery, stored credentials, refresh token, and optional API test.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "refresh": {"type": "boolean", "description": "If true, force a token refresh check."},
+                    "test_api": {"type": "boolean", "description": "If true, send a small xAI API request."},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "xai_oauth_status",
+            "description": "Check MAUDE's xAI Grok OAuth login status without exposing tokens.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "xai_oauth_test",
+            "description": "Send a small request to xAI using MAUDE's stored Grok OAuth bearer token.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt": {"type": "string", "description": "Optional prompt to send"},
+                    "model": {"type": "string", "description": "Optional xAI model, defaults to grok-4.3"},
+                    "max_output_tokens": {"type": "integer", "description": "Optional output token cap"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "xai_x_search",
+            "description": "Search X posts via xAI's server-side x_search Responses API tool using the stored Grok OAuth token.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query for X"},
+                    "model": {"type": "string", "description": "Optional xAI model, defaults to grok-4.3"},
+                    "timeout_seconds": {"type": "number", "description": "Optional request timeout"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "web_view",
             "description": "Screenshot a webpage and analyze it visually using LLaVA.",
             "parameters": {

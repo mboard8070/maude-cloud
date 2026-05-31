@@ -38,6 +38,7 @@ from . import collab    # noqa: F401
 from . import shared    # noqa: F401
 from . import agents    # noqa: F401
 from . import schedule  # noqa: F401
+from . import xai_oauth  # noqa: F401
 
 # ── Execution ──────────────────────────────────────────────────
 from .execute import execute_tool
