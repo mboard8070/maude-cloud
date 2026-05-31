@@ -59,6 +59,59 @@ def _noop_callback(event: EngineEvent):
     pass
 
 
+_TRANSIENT_ERROR_TEXT = (
+    "ssl",
+    "connection",
+    "timed out",
+    "timeout",
+    "reset",
+    "502",
+    "503",
+    "overloaded",
+    "incomplete",
+    "chunked",
+    "peer closed",
+    "remote end closed",
+    "closed connection",
+)
+
+
+def _is_transient_llm_error(exc: Exception) -> bool:
+    """Return True for provider/network failures that should be retried."""
+    if isinstance(exc, (
+        http.client.IncompleteRead,
+        http.client.RemoteDisconnected,
+        ConnectionError,
+        ConnectionResetError,
+        BrokenPipeError,
+        TimeoutError,
+        OSError,
+    )):
+        return True
+    err_msg = str(exc).lower()
+    return any(token in err_msg for token in _TRANSIENT_ERROR_TEXT)
+
+
+def _read_response_body(resp: http.client.HTTPResponse) -> bytes:
+    """Read a provider response, salvaging complete JSON from broken chunk endings.
+
+    Some providers occasionally close a chunked non-streaming response without
+    sending the final zero-length chunk. If the JSON body itself is complete,
+    http.client raises IncompleteRead even though the payload is usable.
+    """
+    try:
+        return resp.read()
+    except http.client.IncompleteRead as exc:
+        partial = exc.partial or b""
+        if partial:
+            try:
+                json.loads(partial)
+                return partial
+            except Exception:
+                pass
+        raise
+
+
 class Engine:
     """MAUDE engine — runs tool loops against cloud LLM providers."""
 
@@ -177,10 +230,14 @@ class Engine:
                         conn.request("POST", api_path, body=body, headers=headers)
                         resp = conn.getresponse()
                         llm_result_box[0] = resp.status
-                        llm_result_box[1] = resp.read()
-                        conn.close()
+                        llm_result_box[1] = _read_response_body(resp)
                     except Exception as exc:
                         llm_result_box[2] = exc
+                    finally:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
                 t = threading.Thread(target=_llm_call)
                 t.start()
@@ -206,13 +263,13 @@ class Engine:
                     break
 
                 resp_data = json.loads(resp_body)
+                retries = 0
                 choice = resp_data.get("choices", [{}])[0]
                 message = choice.get("message", {})
                 finish_reason = choice.get("finish_reason", "")
 
             except Exception as e:
-                err_msg = str(e)
-                transient = any(k in err_msg.lower() for k in ("ssl", "connection", "timed out", "reset", "502", "503"))
+                transient = _is_transient_llm_error(e)
                 if transient and retries < 3:
                     retries += 1
                     on_event(EngineEvent("error", {"message": f"Retrying ({retries}/3)..."}))
@@ -405,10 +462,14 @@ class Engine:
                         conn.request("POST", api_path, body=body, headers=headers)
                         resp = conn.getresponse()
                         llm_result_box[0] = resp.status
-                        llm_result_box[1] = resp.read()
-                        conn.close()
+                        llm_result_box[1] = _read_response_body(resp)
                     except Exception as exc:
                         llm_result_box[2] = exc
+                    finally:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
                 t = threading.Thread(target=_llm_call)
                 t.start()
@@ -435,11 +496,11 @@ class Engine:
                     break
 
                 resp_data = json.loads(resp_body)
+                retries = 0
                 stop_reason = resp_data.get("stop_reason", "")
 
             except Exception as e:
-                err_msg = str(e)
-                transient = any(k in err_msg.lower() for k in ("ssl", "connection", "timed out", "reset", "502", "503", "overloaded"))
+                transient = _is_transient_llm_error(e)
                 if transient and retries < 3:
                     retries += 1
                     on_event(EngineEvent("error", {"message": f"Retrying ({retries}/3)..."}))
